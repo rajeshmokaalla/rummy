@@ -5,6 +5,7 @@ let gameHistory = [];
 let roundNumber = 0;
 let gameStarted = false;
 let rejoinCounts = {}; // id -> number of times re-joined
+let rejoinEligible = new Set(); // only the most recently knocked-out players may rejoin
 
 // --- Player Management ---
 
@@ -55,7 +56,7 @@ function renderPlayers() {
         let actionBtn = '';
         if (!gameStarted) {
             actionBtn = `<button onclick="removePlayer(${player.id})" class="remove-button">Remove</button>`;
-        } else if (isOut && !rejoinBlocked) {
+        } else if (isOut && rejoinEligible.has(player.id) && !rejoinBlocked) {
             actionBtn = `<button onclick="rejoinPlayer(${player.id})" class="rejoin-button">↩ Re-join</button>`;
         }
 
@@ -71,9 +72,10 @@ function renderPlayers() {
         playerList.appendChild(li);
     });
 
-    // Show or hide the no-rejoin notice at the bottom of the players section
+    // Show notice only when there ARE eligible players but they're blocked by high active score
+    const hasEligibleBlocked = rejoinBlocked && rejoinEligible.size > 0;
     let notice = document.getElementById('rejoinBlockedNotice');
-    if (rejoinBlocked && eliminatedPlayers.length > 0) {
+    if (hasEligibleBlocked) {
         if (!notice) {
             notice = document.createElement('div');
             notice.id = 'rejoinBlockedNotice';
@@ -103,6 +105,7 @@ function rejoinPlayer(id) {
 
     // Track rejoin
     rejoinCounts[id] = (rejoinCounts[id] || 0) + 1;
+    rejoinEligible.delete(id); // consumed their rejoin window
 
     player.totalScore = highestScore;
     eliminatedPlayers = eliminatedPlayers.filter(e => e.id !== id);
@@ -150,6 +153,7 @@ function newGame() {
     eliminatedPlayers = [];
     gameHistory = [];
     rejoinCounts = {};
+    rejoinEligible = new Set();
     roundNumber = 0;
     gameStarted = true;
 
@@ -218,6 +222,11 @@ function finishRound() {
     });
 
     activePlayers = activePlayers.filter(p => p.totalScore < 201);
+
+    // Only the players knocked out THIS round may rejoin; prior out players lose their chance
+    if (knockedOut.length > 0) {
+        rejoinEligible = new Set(knockedOut.map(p => p.id));
+    }
 
     renderPlayers();
 
@@ -324,6 +333,7 @@ function resetGame() {
     eliminatedPlayers = [];
     gameHistory = [];
     rejoinCounts = {};
+    rejoinEligible = new Set();
     roundNumber = 0;
     gameStarted = false;
     closeSettlement();
@@ -374,12 +384,11 @@ function renderSettlementBetInput() {
 
     let splitSection = '';
     if (winners.length > 1) {
-        // Pre-calculate score-based percentages (lower score = higher share, since lower is better in Rummy)
-        // We invert: share proportional to (maxScore - playerScore), so the player closest to 0 gets most.
-        const maxScore = Math.max(...winners.map(w => w.totalScore));
-        const invScores = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, inv: maxScore - w.totalScore + 1 }));
-        const invTotal = invScores.reduce((s, w) => s + w.inv, 0);
-        const scoreBasedPcts = invScores.map(w => ({ ...w, pct: (w.inv / invTotal) * 100 }));
+        // Pre-calculate score-based percentages: share = (200 - score) / sum of all winners' (200 - score)
+        // Player closer to 0 (further from bust) gets a larger share
+        const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: 200 - w.totalScore }));
+        const basisTotal = scoreBasedPcts.reduce((s, w) => s + w.basis, 0);
+        scoreBasedPcts.forEach(w => w.pct = basisTotal > 0 ? (w.basis / basisTotal) * 100 : 100 / winners.length);
 
         const pctRows = scoreBasedPcts.map(w => `
             <tr>
@@ -463,11 +472,10 @@ function calculateSettlement() {
     if (winners.length === 1 || !splitMode || splitMode.value === 'equal') {
         winners.forEach(w => winnerShares[w.id] = 1 / winners.length);
     } else {
-        // Score-based: invert scores so lower score = higher share
-        const maxScore = Math.max(...winners.map(w => w.totalScore));
-        const invScores = winners.map(w => ({ id: w.id, inv: maxScore - w.totalScore + 1 }));
-        const invTotal = invScores.reduce((s, w) => s + w.inv, 0);
-        invScores.forEach(w => winnerShares[w.id] = w.inv / invTotal);
+        // Score-based: share = (200 - score) / sum of (200 - score) for all winners
+        const basisScores = winners.map(w => ({ id: w.id, basis: 200 - w.totalScore }));
+        const basisTotal = basisScores.reduce((s, w) => s + w.basis, 0);
+        basisScores.forEach(w => winnerShares[w.id] = basisTotal > 0 ? w.basis / basisTotal : 1 / winners.length);
     }
 
     // Balance = what player receives - what they contributed
