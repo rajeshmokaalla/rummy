@@ -274,6 +274,70 @@ tr:nth-child(even) td {
     border-radius: 4px;
 }
 
+/* Bet amount input */
+.bet-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #eef6ff;
+    border: 1px solid #b8d4f0;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.bet-input {
+    width: 100px;
+    padding: 8px 10px;
+    font-size: 1.1em;
+    border: 2px solid #337ab7;
+    border-radius: 6px;
+    font-weight: bold;
+    color: #337ab7;
+}
+
+/* Rejoin multiplier display in table */
+.mult-cell {
+    font-weight: bold;
+    color: #333;
+}
+
+.rejoin-mult {
+    font-size: 0.8em;
+    color: #f0ad4e;
+    font-weight: normal;
+    margin-left: 4px;
+}
+
+.rejoin-mult-sm {
+    font-size: 0.75em;
+    color: #f0ad4e;
+    margin-left: 4px;
+}
+
+.rejoin-note-text {
+    font-size: 0.88em;
+    color: #8a6d3b;
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+}
+
+/* Rejoin count badge on player list */
+.rejoin-count-badge {
+    display: inline-block;
+    background: #f0ad4e;
+    color: #fff;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
 /* Status tags */
 .tag-winner {
     background: #dff0d8;
