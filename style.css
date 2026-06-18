@@ -13,7 +13,7 @@ h1, h2 {
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 input[type="text"], input[type="number"] {
@@ -37,6 +37,7 @@ button:hover {
     background-color: #4cae4c;
 }
 
+/* Player list */
 ul {
     list-style: none;
     padding: 0;
@@ -61,57 +62,31 @@ li {
     color: #d9534f;
 }
 
-.winner-display {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #dff0d8;
-    color: #3c763d;
-    border: 1px solid #d6e9c6;
-    border-radius: 4px;
-    font-size: 1.2em;
-    text-align: center;
-}
-
-.score-input {
-    width: 80px; /* Adjust width as needed */
-}
-
-/* Eliminated player row */
+/* Eliminated player */
 li.player-out {
     background-color: #f2dede;
-    opacity: 0.7;
+    border-left: 4px solid #a94442;
+    opacity: 0.75;
+}
+
+li.player-out .player-name {
     text-decoration: line-through;
     color: #a94442;
 }
 
-li.player-out .total-score {
-    color: #a94442;
+.score-out {
+    color: #a94442 !important;
 }
 
-/* Elimination announcement banner */
-.elimination-display {
-    background-color: #f2dede;
-    color: #a94442;
-    border-color: #ebccd1;
-    font-size: 1.1em;
-    animation: flash 0.5s ease-in-out 2;
-}
-
-@keyframes flash {
-    0%   { opacity: 1; }
-    50%  { opacity: 0.4; }
-    100% { opacity: 1; }
-}
-
-/* Round table styling */
+/* Round table */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 th, td {
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: 1px solid #ddd;
     text-align: left;
 }
@@ -121,6 +96,43 @@ th {
     color: white;
 }
 
-tr:nth-child(even) {
+tr:nth-child(even) td {
     background-color: #f9f9f9;
+}
+
+.score-input {
+    width: 80px;
+}
+
+/* Winner / info banner */
+.winner-display {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    font-size: 1.15em;
+    text-align: center;
+    min-height: 10px;
+}
+
+/* Elimination banner — red flash */
+.elimination-display {
+    background-color: #f2dede;
+    color: #a94442;
+    border: 1px solid #ebccd1;
+    animation: flashRed 0.6s ease-in-out 3;
+}
+
+@keyframes flashRed {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.35; }
+    100% { opacity: 1; }
+}
+
+/* Final winner banner — green */
+.winner-final {
+    background-color: #dff0d8;
+    color: #3c763d;
+    border: 2px solid #5cb85c;
+    font-size: 1.4em;
+    padding: 24px;
 }
