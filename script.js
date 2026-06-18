@@ -40,6 +40,12 @@ function renderPlayers() {
     const playerList = document.getElementById('playerList');
     playerList.innerHTML = '';
 
+    // Highest score among currently active (not-out) players
+    const highestActiveScore = activePlayers.length > 0
+        ? Math.max(...activePlayers.map(p => p.totalScore))
+        : 0;
+    const rejoinBlocked = gameStarted && highestActiveScore > 180;
+
     players.forEach(player => {
         const isOut = eliminatedPlayers.some(e => e.id === player.id);
         const rejoins = rejoinCounts[player.id] || 0;
@@ -49,7 +55,7 @@ function renderPlayers() {
         let actionBtn = '';
         if (!gameStarted) {
             actionBtn = `<button onclick="removePlayer(${player.id})" class="remove-button">Remove</button>`;
-        } else if (isOut) {
+        } else if (isOut && !rejoinBlocked) {
             actionBtn = `<button onclick="rejoinPlayer(${player.id})" class="rejoin-button">↩ Re-join</button>`;
         }
 
@@ -64,6 +70,20 @@ function renderPlayers() {
         `;
         playerList.appendChild(li);
     });
+
+    // Show or hide the no-rejoin notice at the bottom of the players section
+    let notice = document.getElementById('rejoinBlockedNotice');
+    if (rejoinBlocked && eliminatedPlayers.length > 0) {
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'rejoinBlockedNotice';
+            notice.className = 'rejoin-blocked-notice';
+            document.querySelector('.players-section').appendChild(notice);
+        }
+        notice.innerHTML = `⚠️ Re-join not available — highest active score is <strong>${highestActiveScore}</strong> (above 180). No drop chance remaining.`;
+    } else {
+        if (notice) notice.remove();
+    }
 }
 
 // --- Re-join Logic ---

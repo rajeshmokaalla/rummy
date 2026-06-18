@@ -325,7 +325,17 @@ tr:nth-child(even) td {
     margin-bottom: 4px;
 }
 
-/* Rejoin count badge on player list */
+/* Rejoin blocked notice */
+.rejoin-blocked-notice {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    color: #856404;
+    font-size: 0.9em;
+}
 .rejoin-count-badge {
     display: inline-block;
     background: #f0ad4e;
