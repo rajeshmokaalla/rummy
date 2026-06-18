@@ -110,6 +110,10 @@ function rejoinPlayer(id) {
 
     renderPlayers();
 
+    // Hide the settlement button — player re-joined so game is back in full swing
+    const existingBtn = document.getElementById('settlementBtn');
+    if (existingBtn) existingBtn.remove();
+
     // Inject row into current round table if one is active
     const tbody = document.querySelector('#gameArea table tbody');
     if (tbody) {
@@ -370,25 +374,32 @@ function renderSettlementBetInput() {
 
     let splitSection = '';
     if (winners.length > 1) {
+        // Pre-calculate score-based percentages (lower score = higher share, since lower is better in Rummy)
+        // We invert: share proportional to (maxScore - playerScore), so the player closest to 0 gets most.
+        const maxScore = Math.max(...winners.map(w => w.totalScore));
+        const invScores = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, inv: maxScore - w.totalScore + 1 }));
+        const invTotal = invScores.reduce((s, w) => s + w.inv, 0);
+        const scoreBasedPcts = invScores.map(w => ({ ...w, pct: (w.inv / invTotal) * 100 }));
+
+        const pctRows = scoreBasedPcts.map(w => `
+            <tr>
+                <td>${w.name}</td>
+                <td>${w.score}</td>
+                <td><strong>${w.pct.toFixed(1)}%</strong></td>
+            </tr>
+        `).join('');
+
         splitSection = `
             <div class="split-mode-section">
                 <p><strong>Split pot among winners:</strong></p>
-                <label><input type="radio" name="splitMode" value="equal" checked onchange="togglePercentageInputs(false)"> Equal split</label>
+                <label><input type="radio" name="splitMode" value="equal" checked onchange="togglePercentageSection(false)"> Equal split</label>
                 &nbsp;&nbsp;
-                <label><input type="radio" name="splitMode" value="percentage" onchange="togglePercentageInputs(true)"> Percentage split</label>
+                <label><input type="radio" name="splitMode" value="percentage" onchange="togglePercentageSection(true)"> Percentage split (by score)</label>
                 <div id="percentageSection" class="hidden percentage-section">
-                    <p class="pct-note">Enter each winner's share % (must total 100):</p>
+                    <p class="pct-note">Shares auto-calculated from current scores — lower score wins more.</p>
                     <table class="settlement-table">
                         <thead><tr><th>Winner</th><th>Score</th><th>Share %</th></tr></thead>
-                        <tbody>
-                            ${winners.map(w => `
-                                <tr>
-                                    <td>${w.name}</td>
-                                    <td>${w.totalScore}</td>
-                                    <td><input type="number" class="pct-input" id="pct_${w.id}" min="0" max="100" value="${Math.round(100 / winners.length)}" placeholder="0"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
+                        <tbody>${pctRows}</tbody>
                     </table>
                 </div>
             </div>
@@ -417,7 +428,7 @@ function renderSettlementBetInput() {
     `;
 }
 
-function togglePercentageInputs(show) {
+function togglePercentageSection(show) {
     const sec = document.getElementById('percentageSection');
     if (sec) sec.classList.toggle('hidden', !show);
 }
@@ -452,17 +463,11 @@ function calculateSettlement() {
     if (winners.length === 1 || !splitMode || splitMode.value === 'equal') {
         winners.forEach(w => winnerShares[w.id] = 1 / winners.length);
     } else {
-        let totalPct = 0;
-        winners.forEach(w => {
-            const pctInp = document.getElementById(`pct_${w.id}`);
-            const pct = parseFloat(pctInp ? pctInp.value : 0) || 0;
-            winnerShares[w.id] = pct / 100;
-            totalPct += pct;
-        });
-        if (Math.abs(totalPct - 100) > 0.5) {
-            alert(`Percentages must total 100% (currently ${totalPct.toFixed(1)}%).`);
-            return;
-        }
+        // Score-based: invert scores so lower score = higher share
+        const maxScore = Math.max(...winners.map(w => w.totalScore));
+        const invScores = winners.map(w => ({ id: w.id, inv: maxScore - w.totalScore + 1 }));
+        const invTotal = invScores.reduce((s, w) => s + w.inv, 0);
+        invScores.forEach(w => winnerShares[w.id] = w.inv / invTotal);
     }
 
     // Balance = what player receives - what they contributed
