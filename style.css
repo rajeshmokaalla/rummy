@@ -90,6 +90,24 @@ li.player-out .player-name {
     background-color: #ec971f;
 }
 
+/* Re-joined row in round table */
+.rejoin-row td {
+    background-color: #fffbe6 !important;
+    border-left: 3px solid #f0ad4e;
+}
+
+.rejoin-tag {
+    display: inline-block;
+    background: #f0ad4e;
+    color: #fff;
+    font-size: 0.72em;
+    font-weight: bold;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
 /* Round table */
 table {
     width: 100%;

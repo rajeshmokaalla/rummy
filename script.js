@@ -83,6 +83,20 @@ function rejoinPlayer(id) {
 
     renderPlayers();
 
+    // If a round table is currently displayed, inject a new row for this player
+    const tbody = document.querySelector('#gameArea table tbody');
+    if (tbody) {
+        const tr = document.createElement('tr');
+        tr.id = `row_${player.id}`;
+        tr.className = 'rejoin-row';
+        tr.innerHTML = `
+            <td><strong>${player.name}</strong> <span class="rejoin-tag">↩ re-joined</span></td>
+            <td>${player.totalScore}</td>
+            <td><input type="number" class="score-input" id="score_${player.id}" min="0" value="0"></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
     // Show banner
     const banner = document.getElementById('winnerDisplay');
     banner.className = 'winner-display rejoin-display';
