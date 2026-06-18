@@ -165,6 +165,11 @@ function startNextRound() {
     html += '</tbody></table>';
     html += `<button onclick="finishRound()">✔ Finish Round</button>`;
     gameDiv.innerHTML = html;
+
+    // Re-attach settlement button if players have already been eliminated
+    if (eliminatedPlayers.length > 0) {
+        showSettlementButton();
+    }
 }
 
 function finishRound() {
@@ -194,8 +199,7 @@ function finishRound() {
 
     if (knockedOut.length > 0) {
         showEliminationBanner(knockedOut, () => {
-            // Someone just went out — always trigger settlement/end check
-            triggerEndGame();
+            afterElimination();
         });
     } else {
         if (activePlayers.length <= 1) {
@@ -206,34 +210,57 @@ function finishRound() {
     }
 }
 
-// Called whenever someone is eliminated or only 1 active player remains.
-// If there are eliminated players, always open settlement immediately.
-function triggerEndGame() {
-    if (eliminatedPlayers.length > 0) {
-        // Determine winner(s)
-        const winners = activePlayers.length > 0 ? activePlayers : [players.sort((a, b) => a.totalScore - b.totalScore)[0]];
-
-        document.getElementById('gameArea').innerHTML = '';
-        gameStarted = false;
-        renderPlayers();
-
-        if (winners.length === 1) {
-            const banner = document.getElementById('winnerDisplay');
-            banner.className = 'winner-display winner-final';
-            banner.innerHTML = `
-                🏆 <strong>${winners[0].name} wins!</strong><br>
-                <span style="font-size:0.9em">Final score: ${winners[0].totalScore} pts &nbsp;|&nbsp; ${roundNumber} rounds played</span>
-            `;
-        }
-
-        // Auto-open settlement
-        openSettlement();
+// Called after the elimination banner clears.
+// If 2+ active players remain, game continues — just show the settlement button.
+// If 0 or 1 remain, game is over.
+function afterElimination() {
+    if (activePlayers.length >= 2) {
+        startNextRound();
+        showSettlementButton();
     } else {
-        // No eliminations at all — plain winner
-        const winner = activePlayers.length > 0
-            ? activePlayers[0]
-            : [...players].sort((a, b) => a.totalScore - b.totalScore)[0];
-        announceWinner(winner);
+        triggerEndGame();
+    }
+}
+
+// Appends the persistent settlement button below the round table.
+function showSettlementButton() {
+    if (document.getElementById('settlementBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'settlementBtn';
+    btn.className = 'settlement-trigger-btn';
+    btn.textContent = '💰 Final Settlement';
+    btn.onclick = openSettlement;
+    document.getElementById('gameArea').appendChild(btn);
+}
+
+// Called when game is truly over (0 or 1 active players left).
+function triggerEndGame() {
+    const winners = activePlayers.length > 0
+        ? [...activePlayers]
+        : [[...players].sort((a, b) => a.totalScore - b.totalScore)[0]];
+
+    document.getElementById('gameArea').innerHTML = '';
+    gameStarted = false;
+    renderPlayers();
+
+    const banner = document.getElementById('winnerDisplay');
+    banner.className = 'winner-display winner-final';
+
+    if (eliminatedPlayers.length > 0) {
+        banner.innerHTML = `
+            🏆 <strong>${winners[0].name} wins!</strong><br>
+            <span style="font-size:0.9em">Final score: ${winners[0].totalScore} pts &nbsp;|&nbsp; ${roundNumber} rounds played</span><br>
+            <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button onclick="resetGame()">🔄 Play Again</button>
+                <button onclick="openSettlement()" class="settlement-btn-winner">💰 Final Settlement</button>
+            </div>
+        `;
+    } else {
+        banner.innerHTML = `
+            🏆 <strong>${winners[0].name} wins!</strong><br>
+            <span style="font-size:0.9em">Final score: ${winners[0].totalScore} pts &nbsp;|&nbsp; ${roundNumber} rounds played</span><br>
+            <button onclick="resetGame()" style="margin-top:14px;">🔄 Play Again</button>
+        `;
     }
 }
 
