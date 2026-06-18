@@ -385,7 +385,6 @@ function renderSettlementBetInput() {
     let splitSection = '';
     if (winners.length > 1) {
         // Pre-calculate score-based percentages: share = (200 - score) / sum of all winners' (200 - score)
-        // Player closer to 0 (further from bust) gets a larger share
         const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: 200 - w.totalScore }));
         const basisTotal = scoreBasedPcts.reduce((s, w) => s + w.basis, 0);
         scoreBasedPcts.forEach(w => w.pct = basisTotal > 0 ? (w.basis / basisTotal) * 100 : 100 / winners.length);
@@ -398,18 +397,48 @@ function renderSettlementBetInput() {
             </tr>
         `).join('');
 
+        // Manual % input rows — default to equal split
+        const equalDefault = (100 / winners.length).toFixed(1);
+        const manualRows = winners.map(w => `
+            <tr>
+                <td><strong>${w.name}</strong></td>
+                <td>
+                    <input type="number" class="pct-input manual-pct-input" data-id="${w.id}"
+                        min="0" max="100" step="0.1" value="${equalDefault}"
+                        oninput="updateManualPctTotal()">
+                </td>
+                <td id="manualPctDisplay_${w.id}">${equalDefault}%</td>
+            </tr>
+        `).join('');
+
         splitSection = `
             <div class="split-mode-section">
                 <p><strong>Split pot among winners:</strong></p>
-                <label><input type="radio" name="splitMode" value="equal" checked onchange="togglePercentageSection(false)"> Equal split</label>
+                <label><input type="radio" name="splitMode" value="equal" checked onchange="onSplitModeChange('equal')"> Equal split</label>
                 &nbsp;&nbsp;
-                <label><input type="radio" name="splitMode" value="percentage" onchange="togglePercentageSection(true)"> Percentage split (by score)</label>
+                <label><input type="radio" name="splitMode" value="percentage" onchange="onSplitModeChange('percentage')"> % by score</label>
+                &nbsp;&nbsp;
+                <label><input type="radio" name="splitMode" value="manual" onchange="onSplitModeChange('manual')"> Manual %</label>
+
                 <div id="percentageSection" class="hidden percentage-section">
                     <p class="pct-note">Shares auto-calculated from current scores — lower score wins more.</p>
                     <table class="settlement-table">
                         <thead><tr><th>Winner</th><th>Score</th><th>Share %</th></tr></thead>
                         <tbody>${pctRows}</tbody>
                     </table>
+                </div>
+
+                <div id="manualPctSection" class="hidden percentage-section">
+                    <p class="pct-note">Enter a custom percentage for each winner. Total must equal 100%.</p>
+                    <table class="settlement-table">
+                        <thead><tr><th>Winner</th><th>Share %</th><th>Preview</th></tr></thead>
+                        <tbody>${manualRows}</tbody>
+                    </table>
+                    <div id="manualPctTotalRow" style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                        <span>Total: </span>
+                        <strong id="manualPctTotal" style="font-size:1.1em;">100.0%</strong>
+                        <span id="manualPctStatus" style="font-size:0.9em;color:#3c763d;">✔ OK</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -437,9 +466,31 @@ function renderSettlementBetInput() {
     `;
 }
 
-function togglePercentageSection(show) {
-    const sec = document.getElementById('percentageSection');
-    if (sec) sec.classList.toggle('hidden', !show);
+function onSplitModeChange(mode) {
+    const scoreSec = document.getElementById('percentageSection');
+    const manualSec = document.getElementById('manualPctSection');
+    if (scoreSec) scoreSec.classList.toggle('hidden', mode !== 'percentage');
+    if (manualSec) manualSec.classList.toggle('hidden', mode !== 'manual');
+}
+
+function updateManualPctTotal() {
+    const inputs = document.querySelectorAll('.manual-pct-input');
+    let total = 0;
+    inputs.forEach(inp => {
+        const v = parseFloat(inp.value) || 0;
+        total += v;
+        const preview = document.getElementById(`manualPctDisplay_${inp.dataset.id}`);
+        if (preview) preview.textContent = v.toFixed(1) + '%';
+    });
+    const totalEl = document.getElementById('manualPctTotal');
+    const statusEl = document.getElementById('manualPctStatus');
+    if (totalEl) totalEl.textContent = total.toFixed(1) + '%';
+    const ok = Math.abs(total - 100) < 0.11;
+    if (totalEl) totalEl.style.color = ok ? '#3c763d' : '#a94442';
+    if (statusEl) {
+        statusEl.textContent = ok ? '✔ OK' : '⚠ needs to be 100%';
+        statusEl.style.color = ok ? '#3c763d' : '#a94442';
+    }
 }
 
 function calculateSettlement() {
@@ -471,6 +522,19 @@ function calculateSettlement() {
 
     if (winners.length === 1 || !splitMode || splitMode.value === 'equal') {
         winners.forEach(w => winnerShares[w.id] = 1 / winners.length);
+    } else if (splitMode.value === 'manual') {
+        // Manual percentages — validate total = 100
+        const inputs = document.querySelectorAll('.manual-pct-input');
+        let total = 0;
+        inputs.forEach(inp => { total += parseFloat(inp.value) || 0; });
+        if (Math.abs(total - 100) >= 0.11) {
+            alert(`Manual percentages must total 100%. Currently: ${total.toFixed(1)}%`);
+            return;
+        }
+        inputs.forEach(inp => {
+            const id = parseInt(inp.dataset.id, 10);
+            winnerShares[id] = (parseFloat(inp.value) || 0) / 100;
+        });
     } else {
         // Score-based: share = (200 - score) / sum of (200 - score) for all winners
         const basisScores = winners.map(w => ({ id: w.id, basis: 200 - w.totalScore }));
