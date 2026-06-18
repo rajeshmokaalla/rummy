@@ -75,3 +75,52 @@ li {
 .score-input {
     width: 80px; /* Adjust width as needed */
 }
+
+/* Eliminated player row */
+li.player-out {
+    background-color: #f2dede;
+    opacity: 0.7;
+    text-decoration: line-through;
+    color: #a94442;
+}
+
+li.player-out .total-score {
+    color: #a94442;
+}
+
+/* Elimination announcement banner */
+.elimination-display {
+    background-color: #f2dede;
+    color: #a94442;
+    border-color: #ebccd1;
+    font-size: 1.1em;
+    animation: flash 0.5s ease-in-out 2;
+}
+
+@keyframes flash {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+/* Round table styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+th, td {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #5cb85c;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}

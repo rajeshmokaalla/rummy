@@ -1,6 +1,7 @@
 let players = [];
-let gameHistory = []; // To store scores for each game
-let currentPlayerIndex = 0;
+let activePlayers = []; // Players still in the game
+let gameHistory = [];
+let roundNumber = 0;
 
 // --- Player Management ---
 
@@ -10,6 +11,7 @@ function addPlayer() {
 
     if (playerName && !players.map(p => p.name).includes(playerName)) {
         players.push({ id: Date.now(), name: playerName, totalScore: 0 });
+        activePlayers = [...players];
         renderPlayers();
         playerNameInput.value = '';
     } else if (players.map(p => p.name).includes(playerName)) {
@@ -21,6 +23,7 @@ function addPlayer() {
 
 function removePlayer(id) {
     players = players.filter(player => player.id !== id);
+    activePlayers = activePlayers.filter(player => player.id !== id);
     renderPlayers();
 }
 
@@ -29,11 +32,13 @@ function renderPlayers() {
     playerList.innerHTML = '';
 
     players.forEach(player => {
+        const isOut = player.totalScore >= 201;
         const li = document.createElement('li');
+        li.className = isOut ? 'player-out' : '';
         li.innerHTML = `
-            <span class="player-name">${player.name}</span>
+            <span class="player-name">${player.name}${isOut ? ' 💀 OUT' : ''}</span>
             <span class="total-score">Total: ${player.totalScore}</span>
-            <button onclick="removePlayer(${player.id})" class="remove-button">Remove</button>
+            ${!isOut ? `<button onclick="removePlayer(${player.id})" class="remove-button">Remove</button>` : ''}
         `;
         playerList.appendChild(li);
     });
@@ -46,27 +51,41 @@ function newGame() {
         alert('At least two players are required to start a game.');
         return;
     }
-    document.getElementById('gameArea').innerHTML = ''; // Clear previous game area
-    document.getElementById('winnerDisplay').innerHTML = ''; // Clear previous winner display
 
-    const gameDiv = document.getElementById('gameArea');
-    let gameHtml = `<h3>Game ${gameHistory.length + 1} - Enter Scores</h3>`;
-    gameHtml += '<table>';
-    gameHtml += '<thead><tr><th>Player</th><th>Points</th></tr></thead>';
-    gameHtml += '<tbody>';
+    // Reset all scores and active players
+    players.forEach(p => p.totalScore = 0);
+    activePlayers = [...players];
+    gameHistory = [];
+    roundNumber = 0;
 
-    // Initialize scores for the current game if it's the first game or players were added/removed
-    if (players.some(p => !p.currentRoundScores)) {
-        players.forEach(player => {
-            player.currentRoundScores = {};
-        });
+    document.getElementById('winnerDisplay').innerHTML = '';
+    renderPlayers();
+    startNextRound();
+}
+
+function startNextRound() {
+    if (activePlayers.length === 1) {
+        announceWinner(activePlayers[0]);
+        return;
+    }
+    if (activePlayers.length === 0) {
+        document.getElementById('winnerDisplay').innerHTML = "No players remaining!";
+        return;
     }
 
-    players.forEach((player, index) => {
+    roundNumber++;
+    const gameDiv = document.getElementById('gameArea');
+    let gameHtml = `<h3>Round ${roundNumber} — Enter Scores</h3>`;
+    gameHtml += '<table>';
+    gameHtml += '<thead><tr><th>Player</th><th>Current Total</th><th>Points This Round</th></tr></thead>';
+    gameHtml += '<tbody>';
+
+    activePlayers.forEach(player => {
         gameHtml += `
             <tr>
                 <td>${player.name}</td>
-                <td><input type="number" class="score-input" id="score_${player.id}" min="0" value="0" onchange="updateScore(${player.id}, ${index})"></td>
+                <td>${player.totalScore}</td>
+                <td><input type="number" class="score-input" id="score_${player.id}" min="0" value="0"></td>
             </tr>
         `;
     });
@@ -76,91 +95,84 @@ function newGame() {
     gameDiv.innerHTML = gameHtml;
 }
 
-function updateScore(playerId, playerIndex) {
-    const scoreInput = document.getElementById(`score_${playerId}`);
-    const points = parseInt(scoreInput.value, 10);
-
-    if (!isNaN(points) && points >= 0) {
-        // Find player by ID and update their score for the current round
-        const player = players.find(p => p.id === playerId);
-        if (player) {
-            player.currentRoundScores[gameHistory.length] = points;
-        }
-    } else {
-        // Reset to 0 if input is invalid
-        scoreInput.value = '0';
-        const player = players.find(p => p.id === playerId);
-        if (player) {
-            player.currentRoundScores[gameHistory.length] = 0;
-        }
-    }
-}
-
 function finishRound() {
     const roundScores = {};
-    let allPlayersEntered = true;
+    const eliminatedThisRound = [];
 
-    players.forEach(player => {
+    activePlayers.forEach(player => {
         const scoreInput = document.getElementById(`score_${player.id}`);
         let points = 0;
         if (scoreInput) {
             points = parseInt(scoreInput.value, 10);
-            if (isNaN(points) || points < 0) {
-                points = 0; // Default to 0 if input is invalid
-                scoreInput.value = '0';
-            }
-        } else {
-            // If input element doesn't exist (e.g., player was removed mid-game)
-            points = 0;
+            if (isNaN(points) || points < 0) points = 0;
         }
-
-        player.currentRoundScores[gameHistory.length] = points; // Store score for this round
-        roundScores[player.id] = points;
         player.totalScore += points;
+        roundScores[player.id] = points;
     });
 
-    gameHistory.push(roundScores); // Save scores for this round
-    renderPlayers(); // Update total scores displayed
-    checkForWinner();
+    gameHistory.push(roundScores);
 
-    // Clear current round scores for next game
-    players.forEach(player => {
-        player.currentRoundScores = {};
+    // Check eliminations
+    activePlayers.forEach(player => {
+        if (player.totalScore >= 201) {
+            eliminatedThisRound.push(player);
+        }
     });
+
+    // Remove eliminated players from active list
+    activePlayers = activePlayers.filter(p => p.totalScore < 201);
+
+    renderPlayers();
+
+    // Announce eliminations
+    if (eliminatedThisRound.length > 0) {
+        showEliminationMessage(eliminatedThisRound, () => {
+            if (activePlayers.length === 1) {
+                announceWinner(activePlayers[0]);
+            } else if (activePlayers.length === 0) {
+                // Everyone went out in the same round — lowest score wins
+                const sorted = [...players].filter(p => p.totalScore >= 201).sort((a, b) => a.totalScore - b.totalScore);
+                announceWinner(sorted[0]);
+            } else {
+                startNextRound();
+            }
+        });
+    } else {
+        if (activePlayers.length === 1) {
+            announceWinner(activePlayers[0]);
+        } else {
+            startNextRound();
+        }
+    }
 }
 
-
-function checkForWinner() {
+function showEliminationMessage(eliminatedPlayers, callback) {
+    const names = eliminatedPlayers.map(p => `${p.name} (${p.totalScore} pts)`).join(', ');
     const winnerDisplay = document.getElementById('winnerDisplay');
-    let potentialWinner = null;
-    let allPlayersFinished = true;
 
-    players.forEach(player => {
-        if (player.totalScore >= 201) {
-            // This player has exceeded 200 points
-        } else {
-            allPlayersFinished = false; // There's at least one player under 201
-            potentialWinner = player; // Keep track of the last player under 201
-        }
-    });
+    winnerDisplay.className = 'winner-display elimination-display';
+    winnerDisplay.innerHTML = `
+        🚫 <strong>${names}</strong> ${eliminatedPlayers.length > 1 ? 'are' : 'is'} OUT! (reached 201+)<br>
+        <small>Continuing with remaining players...</small>
+    `;
 
-    if (allPlayersFinished && players.length > 0) {
-        // All players are under or at 200 and at least one player exists
-        players.sort((a, b) => a.totalScore - b.totalScore); // Sort by total score ascending
+    // Auto-dismiss after 3 seconds and continue
+    setTimeout(() => {
+        winnerDisplay.innerHTML = '';
+        winnerDisplay.className = 'winner-display';
+        callback();
+    }, 3000);
+}
 
-        if (players.length > 0 && players[0].totalScore <= 200) {
-             winnerDisplay.innerHTML = `Congratulations ${players[0].name}, you are the winner!`;
-        } else {
-            // This case might happen if all players somehow reach exactly 201 or more in the final round
-            winnerDisplay.innerHTML = "It's a tie or no clear winner this round!";
-        }
-
-        // Reset for a new session after winner is declared
-        // players = [];
-        // gameHistory = [];
-        // renderPlayers();
-        // document.getElementById('gameArea').innerHTML = ''; (optional: clear game area too)
-    }
+function announceWinner(winner) {
+    document.getElementById('gameArea').innerHTML = '';
+    const winnerDisplay = document.getElementById('winnerDisplay');
+    winnerDisplay.className = 'winner-display';
+    winnerDisplay.innerHTML = `
+        🏆 <strong>${winner.name} wins!</strong><br>
+        Final score: ${winner.totalScore} pts after ${roundNumber} rounds.<br>
+        <button onclick="newGame()" style="margin-top:12px;">Play Again</button>
+    `;
 }
 
 // Initial render
