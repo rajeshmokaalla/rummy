@@ -100,14 +100,14 @@ function rejoinPlayer(id) {
         return;
     }
     const highestScore = Math.max(...activePlayers.map(p => p.totalScore));
-    const confirmMsg = `${player.name} will re-join with ${highestScore} points (highest active score). Confirm?`;
+    const confirmMsg = `${player.name} will re-join with ${highestScore + 1} points (max active score + 1). Confirm?`;
     if (!confirm(confirmMsg)) return;
 
     // Track rejoin
     rejoinCounts[id] = (rejoinCounts[id] || 0) + 1;
     rejoinEligible.delete(id); // consumed their rejoin window
 
-    player.totalScore = highestScore;
+    player.totalScore = highestScore + 1;
     eliminatedPlayers = eliminatedPlayers.filter(e => e.id !== id);
     activePlayers.push(player);
 
@@ -133,7 +133,7 @@ function rejoinPlayer(id) {
 
     const banner = document.getElementById('winnerDisplay');
     banner.className = 'winner-display rejoin-display';
-    banner.innerHTML = `↩ <strong>${player.name}</strong> has re-joined with <strong>${highestScore} pts</strong>!`;
+    banner.innerHTML = `↩ <strong>${player.name}</strong> has re-joined with <strong>${highestScore + 1} pts</strong>!`;
     setTimeout(() => {
         banner.innerHTML = '';
         banner.className = 'winner-display';
@@ -201,6 +201,10 @@ function startNextRound() {
 }
 
 function finishRound() {
+    // Clear previous round's rejoin window — players who didn't rejoin lose their chance
+    rejoinEligible = new Set();
+    renderPlayers();
+
     const roundScores = {};
     const knockedOut = [];
 
@@ -212,7 +216,16 @@ function finishRound() {
         roundScores[player.id] = pts;
     });
 
-    gameHistory.push(roundScores);
+    // Store enriched round history (scores this round + running totals)
+    const roundSnapshot = {
+        round: roundNumber,
+        scores: roundScores, // {id: pointsThisRound}
+        totalsAfter: {} // {id: totalScore after this round}
+    };
+    // Capture totals after scores added (totalScore already updated above)
+    activePlayers.forEach(p => { roundSnapshot.totalsAfter[p.id] = p.totalScore; });
+    gameHistory.push(roundSnapshot);
+    renderRoundScoreDropdown();
 
     activePlayers.forEach(player => {
         if (player.totalScore >= 201) {
@@ -275,6 +288,7 @@ function triggerEndGame() {
     document.getElementById('gameArea').innerHTML = '';
     gameStarted = false;
     renderPlayers();
+    renderRoundScoreDropdown();
 
     const banner = document.getElementById('winnerDisplay');
     banner.className = 'winner-display winner-final';
@@ -317,6 +331,7 @@ function announceWinner(winner) {
     document.getElementById('gameArea').innerHTML = '';
     gameStarted = false;
     renderPlayers();
+    renderRoundScoreDropdown();
 
     const banner = document.getElementById('winnerDisplay');
     banner.className = 'winner-display winner-final';
@@ -384,8 +399,8 @@ function renderSettlementBetInput() {
 
     let splitSection = '';
     if (winners.length > 1) {
-        // Pre-calculate score-based percentages: share = (200 - score) / sum of all winners' (200 - score)
-        const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: 200 - w.totalScore }));
+        // Pre-calculate score-based percentages: share = (201 - score) / sum of all winners' (201 - score)
+        const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: 201 - w.totalScore }));
         const basisTotal = scoreBasedPcts.reduce((s, w) => s + w.basis, 0);
         scoreBasedPcts.forEach(w => w.pct = basisTotal > 0 ? (w.basis / basisTotal) * 100 : 100 / winners.length);
 
@@ -536,8 +551,8 @@ function calculateSettlement() {
             winnerShares[id] = (parseFloat(inp.value) || 0) / 100;
         });
     } else {
-        // Score-based: share = (200 - score) / sum of (200 - score) for all winners
-        const basisScores = winners.map(w => ({ id: w.id, basis: 200 - w.totalScore }));
+        // Score-based: share = (201 - score) / sum of (201 - score) for all winners
+        const basisScores = winners.map(w => ({ id: w.id, basis: 201 - w.totalScore }));
         const basisTotal = basisScores.reduce((s, w) => s + w.basis, 0);
         basisScores.forEach(w => winnerShares[w.id] = basisTotal > 0 ? w.basis / basisTotal : 1 / winners.length);
     }
@@ -628,6 +643,76 @@ function renderSettlementResult(betAmount, totalPot, balances, transactions) {
             <button onclick="renderSettlementBetInput()" class="back-btn">← Recalculate</button>
             <button onclick="resetGame()">🔄 New Game</button>
         </div>
+    `;
+}
+
+
+// =============================================
+// ROUND SCORE VIEWER
+// =============================================
+
+function renderRoundScoreDropdown() {
+    const container = document.getElementById('roundScoreViewerContainer');
+    if (!container) return;
+    const select = document.getElementById('roundScoreSelect');
+    if (!select) return;
+
+    // Populate dropdown with played rounds
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">-- Select a round --</option>';
+    gameHistory.forEach((r, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `Round ${r.round}`;
+        select.appendChild(opt);
+    });
+
+    // Restore selection if still valid
+    if (currentVal !== '' && gameHistory[parseInt(currentVal)]) {
+        select.value = currentVal;
+        showRoundScore(parseInt(currentVal));
+    } else {
+        document.getElementById('roundScoreTable').innerHTML = '';
+    }
+
+    // Show/hide container based on whether rounds have been played
+    container.classList.toggle('hidden', gameHistory.length === 0);
+}
+
+function showRoundScore(idx) {
+    const tableDiv = document.getElementById('roundScoreTable');
+    if (idx === '' || idx === null || idx === undefined || gameHistory.length === 0) {
+        tableDiv.innerHTML = '';
+        return;
+    }
+    const record = gameHistory[idx];
+    if (!record) { tableDiv.innerHTML = ''; return; }
+
+    // Build player name lookup
+    const nameMap = {};
+    players.forEach(p => { nameMap[p.id] = p.name; });
+
+    const rows = Object.entries(record.scores).map(([id, pts]) => {
+        const name = nameMap[id] || 'Unknown';
+        const total = record.totalsAfter[id] !== undefined ? record.totalsAfter[id] : '—';
+        return `<tr>
+            <td><strong>${name}</strong></td>
+            <td style="text-align:center">${pts}</td>
+            <td style="text-align:center">${total}</td>
+        </tr>`;
+    }).join('');
+
+    tableDiv.innerHTML = `
+        <table class="settlement-table" style="margin-top:10px;">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th style="text-align:center">This Round</th>
+                    <th style="text-align:center">Total After</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
     `;
 }
 
