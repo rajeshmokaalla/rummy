@@ -399,8 +399,10 @@ function renderSettlementBetInput() {
 
     let splitSection = '';
     if (winners.length > 1) {
-        // Pre-calculate score-based percentages: share = (201 - score) / sum of all winners' (201 - score)
-        const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: 201 - w.totalScore }));
+        // Score-based %: inverse proportion — lower score wins higher share.
+        // basis for each winner = sum of all OTHER winners' scores (so lower score → higher share).
+        const totalWinnerScore = winners.reduce((s, w) => s + w.totalScore, 0);
+        const scoreBasedPcts = winners.map(w => ({ id: w.id, name: w.name, score: w.totalScore, basis: totalWinnerScore - w.totalScore }));
         const basisTotal = scoreBasedPcts.reduce((s, w) => s + w.basis, 0);
         scoreBasedPcts.forEach(w => w.pct = basisTotal > 0 ? (w.basis / basisTotal) * 100 : 100 / winners.length);
 
@@ -436,7 +438,7 @@ function renderSettlementBetInput() {
                 <label><input type="radio" name="splitMode" value="manual" onchange="onSplitModeChange('manual')"> Manual %</label>
 
                 <div id="percentageSection" class="hidden percentage-section">
-                    <p class="pct-note">Shares auto-calculated from current scores — lower score wins more.</p>
+                    <p class="pct-note">Shares auto-calculated from scores — lower score wins more (proportional to score difference).</p>
                     <table class="settlement-table">
                         <thead><tr><th>Winner</th><th>Score</th><th>Share %</th></tr></thead>
                         <tbody>${pctRows}</tbody>
@@ -551,8 +553,10 @@ function calculateSettlement() {
             winnerShares[id] = (parseFloat(inp.value) || 0) / 100;
         });
     } else {
-        // Score-based: share = (201 - score) / sum of (201 - score) for all winners
-        const basisScores = winners.map(w => ({ id: w.id, basis: 201 - w.totalScore }));
+        // Score-based: inverse proportion — lower score wins higher share.
+        // Each winner's basis = sum of all OTHER winners' scores.
+        const totalWinnerScoreCalc = winners.reduce((s, w) => s + w.totalScore, 0);
+        const basisScores = winners.map(w => ({ id: w.id, basis: totalWinnerScoreCalc - w.totalScore }));
         const basisTotal = basisScores.reduce((s, w) => s + w.basis, 0);
         basisScores.forEach(w => winnerShares[w.id] = basisTotal > 0 ? w.basis / basisTotal : 1 / winners.length);
     }
