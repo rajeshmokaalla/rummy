@@ -23,6 +23,29 @@
         <div id="winnerDisplay" class="winner-display"></div>
     </div>
 
+
+    <!-- Round Score Viewer -->
+    <div id="roundScoreViewerContainer" class="players-section hidden">
+        <h2>Specific Round Score</h2>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <label for="roundScoreSelect" style="font-weight:bold; color:#333;">Specific Round Score:</label>
+            <select id="roundScoreSelect" onchange="showRoundScore(this.value !== '' ? parseInt(this.value) : '')" 
+                style="padding:8px 12px; border:1px solid #ccc; border-radius:4px; font-size:1em; background:#fff;">
+                <option value="">-- Select a round --</option>
+            </select>
+        </div>
+        <div id="roundScoreTable"></div>
+    </div>
+
+    <!-- Settlement Modal -->
+    <div id="settlementModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeSettlement()">✕</button>
+            <h3>💰 Final Settlement</h3>
+            <div id="settlementBody"></div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

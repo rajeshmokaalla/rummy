@@ -13,7 +13,7 @@ h1, h2 {
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 input[type="text"], input[type="number"] {
@@ -37,6 +37,7 @@ button:hover {
     background-color: #4cae4c;
 }
 
+/* Player list */
 ul {
     list-style: none;
     padding: 0;
@@ -61,17 +62,398 @@ li {
     color: #d9534f;
 }
 
-.winner-display {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #dff0d8;
-    color: #3c763d;
-    border: 1px solid #d6e9c6;
-    border-radius: 4px;
-    font-size: 1.2em;
-    text-align: center;
+/* Eliminated player */
+li.player-out {
+    background-color: #f2dede;
+    border-left: 4px solid #a94442;
+    opacity: 0.75;
+}
+
+li.player-out .player-name {
+    text-decoration: line-through;
+    color: #a94442;
+}
+
+.score-out {
+    color: #a94442 !important;
+}
+
+/* Re-join button */
+.rejoin-button {
+    background-color: #f0ad4e;
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
+.rejoin-button:hover {
+    background-color: #ec971f;
+}
+
+/* Re-joined row in round table */
+.rejoin-row td {
+    background-color: #fffbe6 !important;
+    border-left: 3px solid #f0ad4e;
+}
+
+.rejoin-tag {
+    display: inline-block;
+    background: #f0ad4e;
+    color: #fff;
+    font-size: 0.72em;
+    font-weight: bold;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Round table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+}
+
+th, td {
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #5cb85c;
+    color: white;
+}
+
+tr:nth-child(even) td {
+    background-color: #f9f9f9;
 }
 
 .score-input {
-    width: 80px; /* Adjust width as needed */
+    width: 80px;
+}
+
+/* Winner / info banner */
+.winner-display {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    font-size: 1.15em;
+    text-align: center;
+    min-height: 10px;
+}
+
+/* Elimination banner — red flash */
+.elimination-display {
+    background-color: #f2dede;
+    color: #a94442;
+    border: 1px solid #ebccd1;
+    animation: flashRed 0.6s ease-in-out 3;
+}
+
+@keyframes flashRed {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.35; }
+    100% { opacity: 1; }
+}
+
+/* Re-join banner */
+.rejoin-display {
+    background-color: #fcf8e3;
+    color: #8a6d3b;
+    border: 1px solid #faebcc;
+    animation: flashYellow 0.5s ease-in-out 2;
+}
+
+@keyframes flashYellow {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+/* Final winner banner — green */
+.winner-final {
+    background-color: #dff0d8;
+    color: #3c763d;
+    border: 2px solid #5cb85c;
+    font-size: 1.4em;
+    padding: 24px;
+}
+
+/* Settlement trigger button */
+.settlement-trigger-btn {
+    background-color: #337ab7;
+    margin-top: 10px;
+    display: block;
+}
+.settlement-trigger-btn:hover { background-color: #286090; }
+
+.settlement-btn-winner {
+    background-color: #337ab7;
+}
+.settlement-btn-winner:hover { background-color: #286090; }
+
+/* =====================
+   SETTLEMENT MODAL
+===================== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 28px 24px 20px;
+    max-width: 580px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    position: relative;
+}
+
+.modal-box h3 {
+    margin-top: 0;
+    color: #337ab7;
+    font-size: 1.3em;
+}
+
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.4em;
+    color: #888;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+}
+.modal-close:hover { color: #333; background: none; }
+
+.settlement-subtitle {
+    color: #666;
+    font-size: 0.95em;
+    margin-bottom: 12px;
+}
+
+.settlement-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+}
+
+.settlement-table th {
+    background-color: #337ab7;
+    color: white;
+    padding: 8px 12px;
+}
+
+.settlement-table td {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+}
+
+.contrib-input, .pct-input {
+    width: 80px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Bet amount input */
+.bet-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #eef6ff;
+    border: 1px solid #b8d4f0;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.bet-input {
+    width: 100px;
+    padding: 8px 10px;
+    font-size: 1.1em;
+    border: 2px solid #337ab7;
+    border-radius: 6px;
+    font-weight: bold;
+    color: #337ab7;
+}
+
+/* Rejoin multiplier display in table */
+.mult-cell {
+    font-weight: bold;
+    color: #333;
+}
+
+.rejoin-mult {
+    font-size: 0.8em;
+    color: #f0ad4e;
+    font-weight: normal;
+    margin-left: 4px;
+}
+
+.rejoin-mult-sm {
+    font-size: 0.75em;
+    color: #f0ad4e;
+    margin-left: 4px;
+}
+
+.rejoin-note-text {
+    font-size: 0.88em;
+    color: #8a6d3b;
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+}
+
+/* Rejoin blocked notice */
+.rejoin-blocked-notice {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    color: #856404;
+    font-size: 0.9em;
+}
+.rejoin-count-badge {
+    display: inline-block;
+    background: #f0ad4e;
+    color: #fff;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Status tags */
+.tag-winner {
+    background: #dff0d8;
+    color: #3c763d;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.tag-loser {
+    background: #f2dede;
+    color: #a94442;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+/* Split mode */
+.split-mode-section {
+    margin: 14px 0;
+    padding: 12px 16px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.split-mode-section label {
+    cursor: pointer;
+}
+
+.percentage-section {
+    margin-top: 12px;
+}
+
+.pct-note {
+    font-size: 0.88em;
+    color: #555;
+    margin: 6px 0 8px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.calc-btn {
+    background-color: #337ab7;
+    margin-top: 6px;
+}
+.calc-btn:hover { background-color: #286090; }
+
+.back-btn {
+    background-color: #777;
+}
+.back-btn:hover { background-color: #555; }
+
+/* Results */
+.result-summary {
+    font-size: 1.1em;
+    margin-bottom: 14px;
+    padding: 10px;
+    background: #eef6ff;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.pos-net { color: #3c763d; font-weight: bold; }
+.neg-net { color: #a94442; font-weight: bold; }
+
+/* Transaction rows */
+.tx-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.tx-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 1em;
+}
+
+.tx-from { font-weight: bold; color: #a94442; }
+.tx-arrow { color: #888; font-size: 1.2em; }
+.tx-to { font-weight: bold; color: #3c763d; }
+.tx-amt {
+    margin-left: auto;
+    font-weight: bold;
+    font-size: 1.05em;
+    background: #5cb85c;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+
+.no-tx {
+    color: #3c763d;
+    background: #dff0d8;
+    border: 1px solid #c3e6cb;
+    padding: 10px 14px;
+    border-radius: 6px;
 }
